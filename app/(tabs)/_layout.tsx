@@ -20,7 +20,12 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: '#222',
+        tabBarInactiveTintColor: '#9e9e9e',
+        tabBarStyle: { backgroundColor: Colors['light'].background },
+        headerStyle: { backgroundColor: Colors['light'].background },
+        headerTintColor: Colors['light'].text,
+        headerTitleStyle: { fontWeight: 'bold', color: '#999999' },
         headerShown: useClientOnlyValue(false, true),
       }}>
       <Tabs.Screen
@@ -35,7 +40,7 @@ export default function TabLayout() {
                   <FontAwesome
                     name="info-circle"
                     size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
+                    color={Colors[colorScheme ?? 'dark'].text}
                     style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                   />
                 )}
@@ -49,6 +54,13 @@ export default function TabLayout() {
         options={{
           title: 'Tab Two',
           tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="favorites"
+        options={{
+          title: 'Favorites',
+          tabBarIcon: ({ color }) => <TabBarIcon name="heart" color={color} />,
         }}
       />
       <Tabs.Screen

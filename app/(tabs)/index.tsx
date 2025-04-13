@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Image, FlatList, Pressable, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
 import { Link } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -7,17 +7,18 @@ import SearchInput from '@/components/search/SearchInput';
 import { fetchMakeupProducts, fetchProductBrands } from '@/lib/api';
 
 const BANNER_IMAGES = [
-  require('@/assets/images/img_1.jpg'),
+  require('@/assets/images/img_1.avif'),
   require('@/assets/images/img_2.jpg'),
-  require('@/assets/images/img_3.avif'),
+  require('@/assets/images/img_3.jpg'),
   require('@/assets/images/img_4.jpg'),
+  require('@/assets/images/img_5.jpg'),
 ];
-
 
 export default function HomePage() {
   const [products, setProducts] = useState<any>([]);
   const [brands, setBrands] = useState<any>([]);
   const [loading, setLoading] = useState(true);
+  const bannerRef = useRef<FlatList>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,6 +47,18 @@ export default function HomePage() {
     />
   );
 
+  useEffect(() => {
+    const time = setInterval(() => {
+      setActiveBannerIndex((prev) => {
+        const next = (prev + 1) % BANNER_IMAGES.length;
+        bannerRef.current?.scrollToIndex({ index: next, animated: true });
+        return next;
+      });
+    }, 7000);
+    return () => clearInterval(time);
+  }, []);
+
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container}>
@@ -54,6 +67,7 @@ export default function HomePage() {
         <View style={styles.bannerContainer}>
 
           <FlatList
+            ref={bannerRef}
             horizontal
             pagingEnabled
             data={BANNER_IMAGES}
@@ -218,10 +232,13 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
   },
   brandCard: {
-    width: 120,
-    height: 120,
-    backgroundColor: '#fff',
-    borderRadius: 15,
+    width: 90,
+    height: 90,
+    borderRadius: 35,
+    borderColor: '#840094',
+    marginEnd: 10,
+    borderWidth: 0.6,
+    borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
   },

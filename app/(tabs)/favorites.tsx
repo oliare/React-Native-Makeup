@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'black',
         paddingVertical: 12,
         paddingHorizontal: 50,
-        borderRadius: 25,
+        borderRadius: 15,
         marginTop: 20,
     },
     shopButtonText: {

@@ -1,59 +1,84 @@
-import React from 'react';
-import { View, Text, Image, FlatList, Pressable, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, Image, FlatList, Pressable, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
 import { Link } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Colors from '@/constants/Colors';
 import SearchInput from '@/components/search/SearchInput';
+import { fetchMakeupProducts, fetchProductBrands } from '@/lib/api';
 
-const categories = [
-  { id: '1', name: 'Eye', icon: 'eye' },
-  { id: '2', name: 'Lips', icon: 'smile-o' },
-  { id: '3', name: 'Face', icon: 'user-circle' },
-  { id: '4', name: 'Body', icon: 'child' },
-  { id: '5', name: 'Nails', icon: 'hand-peace-o' },
-  { id: '6', name: 'Hair', icon: 'cut' },
-];
-
-const featuredProducts = [
-  {
-    id: '1',
-    name: 'Shadows palette PRO',
-    price: '₴1200',
-    image: require('@/assets/images/icon.png'),
-    rating: 4.8
-  },
-  {
-    id: '2',
-    name: 'Lipstick Set',
-    price: '₴850',
-    image: require('@/assets/images/icon.png'),
-    rating: 4.9
-  },
-  {
-    id: '3',
-    name: 'Foundation',
-    price: '₴650',
-    image: require('@/assets/images/icon.png'),
-    rating: 4.7
-  },
+const BANNER_IMAGES = [
+  require('@/assets/images/img_1.jpg'),
+  require('@/assets/images/img_2.jpg'),
+  require('@/assets/images/img_3.avif'),
+  require('@/assets/images/img_4.jpg'),
 ];
 
 
 export default function HomePage() {
+  const [products, setProducts] = useState<any>([]);
+  const [brands, setBrands] = useState<any>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await fetchMakeupProducts();
+        setProducts(data);
+        const brandsData = await fetchProductBrands(data);
+        setBrands(brandsData);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+  const { width } = Dimensions.get('window');
+
+  const renderBannerItem = ({ item }: { item: any }) => (
+    <Image
+      source={item}
+      style={[styles.bannerImage, { width, height: 400 }]}
+      resizeMode="cover"
+    />
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
-
       <ScrollView style={styles.container}>
         <SearchInput />
 
-        <View style={styles.hero}>
-          <Image
-            source={require('@/assets/images/splash-icon.png')}
-            style={styles.heroImage}
+        <View style={styles.bannerContainer}>
+
+          <FlatList
+            horizontal
+            pagingEnabled
+            data={BANNER_IMAGES}
+            renderItem={renderBannerItem}
+            keyExtractor={(item) => item}
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(e) => {
+              const index = Math.round(e.nativeEvent.contentOffset.x / width);
+              setActiveBannerIndex(index);
+            }}
           />
+
+          <View style={styles.pagination}>
+            {BANNER_IMAGES.map((_, index) => (
+              <View key={index}
+                style={[
+                  styles.paginationDot,
+                  index === activeBannerIndex && styles.activeDot
+                ]}
+              />
+            ))}
+          </View>
+
+          {/* <Image source={require('@/assets/images/splash-icon.png')} style={styles.heroImage} /> */}
           <View style={styles.heroContent}>
-            <Text style={styles.heroSubtitle}>-50% </Text>
             <Link href="/search" asChild>
               <TouchableOpacity style={styles.shopButton}>
                 <Text style={styles.shopButtonText}>Explore Products</Text>
@@ -63,53 +88,71 @@ export default function HomePage() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Categories</Text>
-          <FlatList
-            horizontal
-            data={categories}
-            renderItem={({ item }) => (
-              <Link href={`/`} asChild>
-                <Pressable style={styles.categoryCard}>
-                  <FontAwesome
-                    name={item.icon as any}
-                    size={32}
-                    color={'#840094'}
-                  />
-                  <Text style={styles.categoryName}>{item.name}</Text>
-                </Pressable>
-              </Link>
-            )}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.categoriesContainer}
-          />
+          <Text style={styles.sectionTitle}>Brands</Text>
+          {loading ? (
+            <ActivityIndicator size="large" color="#840094" />
+          ) : (
+            <FlatList
+              horizontal
+              data={brands}
+              renderItem={({ item }) => (
+                <Link href={`/`} asChild>
+                  <Pressable style={styles.brandCard}>
+                    {item.logo ? (
+                      <Image
+                        source={{ uri: item.logo }}
+                        style={{ width: 50, height: 50, resizeMode: 'contain' }}
+                      />
+                    ) : (
+                      <FontAwesome
+                        name="shopping-bag"
+                        size={32}
+                        color={'#840094'}
+                      />
+                    )}
+                    <Text style={styles.brandName}>
+                      {item.name ? (item.name.length > 10 ? `${item.name.slice(0, 10)}...` : item.name) : ''}
+                    </Text>
+                  </Pressable>
+                </Link>
+              )}
+              keyExtractor={(item) => item.name}
+            />
+          )}
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Hits</Text>
-          <FlatList
-            horizontal
-            data={featuredProducts}
-            renderItem={({ item }) => (
-              <Link href={`/`} asChild>
-                <Pressable style={styles.productCard}>
-                  <Image
-                    source={item.image}
-                    style={styles.productImage}
-                  />
-                  <View style={styles.productInfo}>
+          {loading ? (
+            <ActivityIndicator size="large" color="#840094" />
+          ) : (
+            <FlatList
+              horizontal
+              data={products}
+              renderItem={({ item }) => (
+                <Link href={`/`} asChild>
+                  <Pressable style={styles.productCard}>
+                    <Image
+                      source={
+                        // item.image_link
+                        //   ? { uri: item.image_link }
+                        //   : 
+                        require('@/assets/images/cosmetics-holder.png')
+                      }
+                      style={styles.productImage}
+                    />
                     <Text style={styles.productName}>{item.name}</Text>
                     <View style={styles.ratingContainer}>
                       <FontAwesome name="star" size={16} color="#FFD700" />
-                      <Text style={styles.ratingText}>{item.rating}</Text>
+                      <Text style={styles.ratingText}>{item.rating ? item.rating : '0.0'}</Text>
                     </View>
-                    <Text style={styles.priceText}>{item.price}</Text>
-                  </View>
-                </Pressable>
-              </Link>
-            )}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.productsContainer}
-          />
+                    <Text style={styles.priceText}>${item.price}</Text>
+                  </Pressable>
+                </Link>
+              )}
+              keyExtractor={(item) => item.id}
+            />
+          )}
         </View>
 
         <View style={styles.saleBanner}>
@@ -131,11 +174,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  hero: {
+  bannerContainer: {
     position: 'relative',
     height: 400,
   },
-  heroImage: {
+  bannerImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
@@ -146,13 +189,6 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
   },
-  heroSubtitle: {
-    fontSize: 18,
-    color: '#000',
-    fontWeight: 'bold',
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowRadius: 3,
-  },
   shopButton: {
     backgroundColor: '#fff',
     opacity: 0.7,
@@ -161,16 +197,16 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     borderWidth: 1,
     borderColor: '#000',
-    marginTop: 20,
+    marginVertical: 20,
     alignSelf: 'flex-start',
     shadowOffset: { width: 6, height: 5 },
     shadowOpacity: 1,
-    shadowRadius: 1
+    shadowRadius: 1,
   },
   shopButtonText: {
     color: '#000',
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: 'bold',
   },
   section: {
     padding: 20,
@@ -181,41 +217,32 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     color: Colors.light.text,
   },
-  categoriesContainer: {
-    paddingLeft: 5,
-  },
-  categoryCard: {
+  brandCard: {
     width: 120,
     height: 120,
     backgroundColor: '#fff',
     borderRadius: 15,
-    marginRight: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3,
   },
-  categoryName: {
+  brandName: {
     marginTop: 8,
     color: Colors.light.text,
     fontWeight: '500',
   },
-  productsContainer: {
-    paddingLeft: 5,
-  },
   productCard: {
-    width: 220,
-    marginRight: 15,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    overflow: 'hidden',
+    width: 180,
+    marginRight: 25
   },
   productImage: {
+    backgroundColor: '#ccc',
     width: '100%',
     height: 180,
-    resizeMode: 'cover',
-  },
-  productInfo: {
-    padding: 12,
+    resizeMode: 'contain',
+    opacity: 0.2,
+    borderRadius: 15,
+    paddingHorizontal: 20,
+    marginBottom: 10,
   },
   productName: {
     fontSize: 16,
@@ -244,7 +271,6 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: 'center',
     color: 'black',
-
     shadowColor: 'violet',
     shadowOpacity: 0.5,
     shadowRadius: 10,
@@ -260,5 +286,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     marginTop: 8,
+  },
+  // banner
+  pagination: {
+    position: 'absolute',
+    bottom: 20,
+    flexDirection: 'row',
+    alignSelf: 'center'
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    margin: 5
+  },
+  activeDot: {
+    backgroundColor: '#fff'
   },
 });

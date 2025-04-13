@@ -1,49 +1,38 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, SafeAreaView } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-
-interface Product {
-    id: string;
-    name: string;
-    brand: string;
-    price: string;
-    image: any;
-}
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '@/redux/store';
+import { removeFromFavorites } from '@/redux/slices/favoritesSlice';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const FavoritesScreen = ({ navigation }: { navigation: any }) => {
-    const [favorites, setFavorites] = useState<Product[]>([
-        // {
-        //   id: '1',
-        //   name: 'Matte Liquid Lipstick',
-        //   brand: 'Luxury Cosmetics',
-        //   price: '$24.99',
-        //   image: require('@/assets/images/splash-icon.png'),
-        // },
-        // {
-        //   id: '2',
-        //   name: 'Hydrating Foundation',
-        //   brand: 'Skin Perfect',
-        //   price: '$34.99',
-        //   image: require('@/assets/images/splash-icon.png'),
-        // },
-    ]);
+    const favorites = useSelector((state: RootState) => state.favorites.items);
+    const dispatch = useDispatch();
 
-    const handleRemove = (productId: string) => {
-        setFavorites(prev => prev.filter(item => item.id !== productId));
+    const handleRemove = async (productId: number) => {
+        dispatch(removeFromFavorites(productId));
+
+        const updatedFavorites = favorites.filter((item) => item.id !== productId);
+        await AsyncStorage.setItem('favorites', JSON.stringify(updatedFavorites));
     };
 
-    const renderItem = ({ item }: { item: Product }) => (
+    const renderItem = ({ item }: any) => (
         <View style={styles.productCard}>
-            <Image source={item.image} style={styles.productImage} />
+            <Image source={// item.image_link
+                //   ? { uri: item.image_link }
+                //   : 
+                require('@/assets/images/cosmetics-holder.png')}
+                style={styles.productImage} />
 
             <View style={styles.productInfo}>
                 <Text style={styles.brand}>{item.brand}</Text>
                 <Text style={styles.productName}>{item.name}</Text>
-                <Text style={styles.price}>{item.price}</Text>
+                <Text style={styles.price}>${item.price}</Text>
             </View>
 
             <TouchableOpacity style={styles.removeButton} onPress={() => handleRemove(item.id)} >
-                <FontAwesome name="heart" size={20} color="#ff4444" />
+                <FontAwesome name="heart" size={20} color="#840094" />
             </TouchableOpacity>
         </View>
     );
@@ -61,7 +50,7 @@ const FavoritesScreen = ({ navigation }: { navigation: any }) => {
                 </View>
             ) : (
                 <FlatList data={favorites} renderItem={renderItem}
-                    keyExtractor={item => item.id}
+                    keyExtractor={item => item.toString()}
                     contentContainerStyle={styles.listContent}
                     numColumns={2}
                     columnWrapperStyle={styles.columnWrapper} />
@@ -75,30 +64,26 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#fff',
     },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: '600',
-        textAlign: 'center',
-        marginVertical: 20,
-        color: '#333',
-    },
     productCard: {
         flex: 1,
         margin: 8,
+        marginBlockStart: 15,
         backgroundColor: 'white',
         borderRadius: 12,
         padding: 12,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
         elevation: 3,
+        maxWidth: 160,
     },
     productImage: {
         width: '100%',
-        height: 150,
         borderRadius: 8,
         marginBottom: 10,
+        opacity: 0.3,
+        resizeMode: 'contain',
     },
     productInfo: {
         marginBottom: 10,
@@ -107,17 +92,19 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#666',
         marginBottom: 4,
+        paddingTop: 10,
+        borderTopWidth: 1,
+        borderTopColor: '#D1BDD4'
     },
     productName: {
         fontSize: 14,
         fontWeight: '500',
         color: '#333',
-        marginBottom: 6,
+        marginBottom: 10,
     },
     price: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#007bff',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
     removeButton: {
         position: 'absolute',
@@ -125,7 +112,7 @@ const styles = StyleSheet.create({
         right: 10,
         padding: 6,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.8)',
+        backgroundColor: 'rgba(244, 227, 241, 0.93)',
     },
     listContent: {
         paddingHorizontal: 8,

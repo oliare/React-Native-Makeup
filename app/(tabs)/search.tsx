@@ -4,14 +4,22 @@ import SearchInput from '@/components/search/SearchInput';
 import { fetchMakeupProducts, fetchProductCategories } from '@/lib/api';
 import Loader from '@/components/loader/Loader';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-
+import { Ionicons } from '@expo/vector-icons';
+import { useDispatch, useSelector } from 'react-redux';
+import { addToFavorites, removeFromFavorites } from '@/redux/slices/favoritesSlice';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { RootState } from '@/redux/store';
+import { addToCart, removeFromCart } from '@/redux/slices/cartSlice';
 
 export default function SearchScreen() {
   const [products, setProducts] = useState<any>([]);
   const [categories, setCategories] = useState<any>([]);
   const [selectedCategory, setSelectedCategory] = useState<any>('all');
   const [loading, setLoading] = useState(true);
-  const [favorites, setFavorites] = useState<number[]>([]);
+  const favorites = useSelector((state: RootState) => state.favorites.items);
+  const cart = useSelector((state: RootState) => state.cart.items);
+
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -20,6 +28,14 @@ export default function SearchScreen() {
       const productCategories = fetchProductCategories(data);
       setCategories(['all', ...await productCategories]);
       setLoading(false)
+
+      const saved = await AsyncStorage.getItem('favorites');
+      if (saved) {
+        const favoritesList = JSON.parse(saved);
+        favoritesList.forEach((item: Product) => {
+          dispatch(addToFavorites(item));
+        });
+      }
     };
     fetchData();
   }, []);
@@ -28,10 +44,32 @@ export default function SearchScreen() {
     ? products
     : products.filter((product: { type: any; }) => product.type == selectedCategory);
 
-  const toggleFavorite = (id: number) => {
-    setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+  const handleAddToFavorite = async (item: Product) => {
+    const isFavorite = favorites.some(fav => fav.id === item.id);
+
+    if (isFavorite) {
+      dispatch(removeFromFavorites(item.id));
+      const upd = favorites.filter(fav => fav.id !== item.id);
+      await AsyncStorage.setItem('favorites', JSON.stringify(upd));
+    } else {
+      dispatch(addToFavorites(item));
+      const upd = [...favorites, item];
+      await AsyncStorage.setItem('favorites', JSON.stringify(upd));
+    }
+  };
+
+  const handleAddToCart = async (item: Product) => {
+    const isOnCart = cart.some(fav => fav.id === item.id);
+
+    if (isOnCart) {
+      dispatch(removeFromCart(item.id));
+      const upd = cart.filter(fav => fav.id !== item.id);
+      await AsyncStorage.setItem('cart', JSON.stringify(upd));
+    } else {
+      dispatch(addToCart(item));
+      const upd = [...cart, item];
+      await AsyncStorage.setItem('cart', JSON.stringify(upd));
+    }
   };
 
   return (
@@ -62,9 +100,22 @@ export default function SearchScreen() {
             numColumns={2}
             renderItem={({ item }) => (
               <View style={styles.card}>
-                <TouchableOpacity style={styles.heartIcon} onPress={() => toggleFavorite(item.id)} >
-                  <FontAwesome name={favorites.includes(item.id) ? 'heart' : 'heart-o'} size={20} color="#840094" />
-                </TouchableOpacity>
+                <View style={styles.iconsCol}>
+                  <TouchableOpacity onPress={() => handleAddToFavorite(item)}>
+                    <Ionicons
+                      name={favorites.some(i => i.id === item.id) ? 'heart' : 'heart-outline'}
+                      size={22}
+                      color="#840094"
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleAddToCart(item)} style={{ marginTop: 10 }}>
+                    <Ionicons
+                      name={cart.some(i => i.id === item.id) ? 'bag-handle' : 'bag-outline'}
+                      size={22} color="#840094"
+                    />
+                  </TouchableOpacity>
+                </View>
+
                 <Image
                   source={
                     // item.image_link
@@ -142,5 +193,12 @@ const styles = StyleSheet.create({
     right: 10,
     zIndex: 1,
   },
-
+  iconsCol: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    flexDirection: 'column',
+    alignItems: 'center',
+    zIndex: 1,
+  },
 });
